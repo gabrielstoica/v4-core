@@ -16,7 +16,7 @@ import {IUnlockCallback} from "./interfaces/callback/IUnlockCallback.sol";
 import {ProtocolFees} from "./ProtocolFees.sol";
 import {ERC6909Claims} from "./ERC6909Claims.sol";
 import {PoolId, PoolIdLibrary} from "./types/PoolId.sol";
-import {BalanceDelta, BalanceDeltaLibrary, toBalanceDelta} from "./types/BalanceDelta.sol";
+import {BalanceDelta, BalanceDeltaLibrary} from "./types/BalanceDelta.sol";
 import {BeforeSwapDelta} from "./types/BeforeSwapDelta.sol";
 import {Lock} from "./libraries/Lock.sol";
 import {CurrencyDelta} from "./libraries/CurrencyDelta.sol";
@@ -117,12 +117,11 @@ contract PoolManager is IPoolManager, ProtocolFees, NoDelegateCall, ERC6909Claim
     }
 
     /// @inheritdoc IPoolManager
-    function initialize(PoolKey memory key, uint160 sqrtPriceX96, bytes calldata hookData)
-        external
-        override
-        noDelegateCall
-        returns (int24 tick)
-    {
+    function initialize(
+        PoolKey memory key,
+        uint160 sqrtPriceX96,
+        bytes calldata hookData
+    ) external override noDelegateCall returns (int24 tick) {
         // see TickBitmap.sol for overflow conditions that can arise from tick spacing being too large
         if (key.tickSpacing > MAX_TICK_SPACING) TickSpacingTooLarge.selector.revertWith();
         if (key.tickSpacing < MIN_TICK_SPACING) TickSpacingTooSmall.selector.revertWith();
@@ -184,13 +183,11 @@ contract PoolManager is IPoolManager, ProtocolFees, NoDelegateCall, ERC6909Claim
     }
 
     /// @inheritdoc IPoolManager
-    function swap(PoolKey memory key, IPoolManager.SwapParams memory params, bytes calldata hookData)
-        external
-        override
-        onlyWhenUnlocked
-        noDelegateCall
-        returns (BalanceDelta swapDelta)
-    {
+    function swap(
+        PoolKey memory key,
+        IPoolManager.SwapParams memory params,
+        bytes calldata hookData
+    ) external override onlyWhenUnlocked noDelegateCall returns (BalanceDelta swapDelta) {
         if (params.amountSpecified == 0) SwapAmountCannotBeZero.selector.revertWith();
         PoolId id = key.toId();
         Pool.State storage pool = _getPool(id);
@@ -228,10 +225,12 @@ contract PoolManager is IPoolManager, ProtocolFees, NoDelegateCall, ERC6909Claim
     }
 
     /// @notice Internal swap function to execute a swap, take protocol fees on input token, and emit the swap event
-    function _swap(Pool.State storage pool, PoolId id, Pool.SwapParams memory params, Currency inputCurrency)
-        internal
-        returns (BalanceDelta)
-    {
+    function _swap(
+        Pool.State storage pool,
+        PoolId id,
+        Pool.SwapParams memory params,
+        Currency inputCurrency
+    ) internal returns (BalanceDelta) {
         (BalanceDelta delta, uint256 feeForProtocol, uint24 swapFee, Pool.SwapState memory state) = pool.swap(params);
 
         // the fee is on the input currency
@@ -239,20 +238,26 @@ contract PoolManager is IPoolManager, ProtocolFees, NoDelegateCall, ERC6909Claim
 
         // event is emitted before the afterSwap call to ensure events are always emitted in order
         emit Swap(
-            id, msg.sender, delta.amount0(), delta.amount1(), state.sqrtPriceX96, state.liquidity, state.tick, swapFee
+            id,
+            msg.sender,
+            delta.amount0(),
+            delta.amount1(),
+            state.sqrtPriceX96,
+            state.liquidity,
+            state.tick,
+            swapFee
         );
 
         return delta;
     }
 
     /// @inheritdoc IPoolManager
-    function donate(PoolKey memory key, uint256 amount0, uint256 amount1, bytes calldata hookData)
-        external
-        override
-        onlyWhenUnlocked
-        noDelegateCall
-        returns (BalanceDelta delta)
-    {
+    function donate(
+        PoolKey memory key,
+        uint256 amount0,
+        uint256 amount1,
+        bytes calldata hookData
+    ) external override onlyWhenUnlocked noDelegateCall returns (BalanceDelta delta) {
         Pool.State storage pool = _getPool(key.toId());
         pool.checkPoolInitialized();
 
